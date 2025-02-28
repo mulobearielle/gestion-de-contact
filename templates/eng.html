@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Contacts</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 5px;
+            margin: 5px;
+        }
+
+        button {
+            padding: 5px 10px;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+
+        th {
+            background-color: lightgray;
+        }
+
+        button.delete {
+            background-color: red;
+        }
+
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gestion des Contacts</h1>
+
+    <!-- Champ de recherche -->
+    <input type="text" id="search" placeholder="Rechercher un contact..." onkeyup="searchContacts()">
+    
+    <form id="contact-form">
+        <input type="text" id="nom" placeholder="Nom" required pattern="[A-Za-zÀ-ÿ\s-]+" title="Lettres et espaces seulement">
+        <span class="error" id="nom-error"></span>
+
+        <input type="text" id="prenom" placeholder="Prénom" required pattern="[A-Za-zÀ-ÿ\s-]+" title="Lettres et espaces seulement">
+        <span class="error" id="prenom-error"></span>
+
+        <input type="text" id="telephone" placeholder="Téléphone (ex: 0991234567)" required pattern="^(099|085|081|098|089)\d{7}$" title="Doit commencer par 099, 085, 081, 098 ou 089 et contenir 10 chiffres">
+        <span class="error" id="telephone-error"></span>
+
+        <input type="email" id="email" placeholder="Email" required>
+        <span class="error" id="email-error"></span>
+
+        <input type="text" id="adresse" placeholder="Adresse">
+        <button type="submit">Ajouter</button>
+    </form>
+
+    <h2>Liste des Contacts</h2>
+    <table id="contact-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Téléphone</th>
+                <th>Email</th>
+                <th>Adresse</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("contact-form");
+            const tableBody = document.querySelector("#contact-table tbody");
+            const searchInput = document.getElementById("search");
+
+            let contacts = []; // Stocker les contacts pour filtrage
+
+            function loadContacts() {
+                fetch("/contacts")
+                    .then(response => response.json())
+                    .then(data => {
+                        contacts = data;
+                        displayContacts(data);
+                    });
+            }
+
+            function displayContacts(data) {
+                tableBody.innerHTML = "";
+                data.forEach(contact => {
+                    let row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${contact[0]}</td>
+                        <td>${contact[1]}</td>
+                        <td>${contact[2]}</td>
+                        <td>${contact[3]}</td>
+                        <td>${contact[4]}</td>
+                        <td>${contact[5]}</td>
+                        <td>
+                            <button onclick="editContact(${contact[0]})">Modifier</button>
+                            <button class="delete" onclick="deleteContact(${contact[0]})">Supprimer</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // Fonction de recherche
+            window.searchContacts = function () {
+                let query = searchInput.value.toLowerCase();
+                let filteredContacts = contacts.filter(contact =>
+                    contact[1].toLowerCase().includes(query) || // Nom
+                    contact[2].toLowerCase().includes(query) || // Prénom
+                    contact[3].includes(query) || // Téléphone
+                    contact[4].toLowerCase().includes(query) // Email
+                );
+                displayContacts(filteredContacts);
+            };
+
+            form.addEventListener("submit", function (event) {
+                event.preventDefault();
+
+                let nom = document.getElementById("nom").value.trim();
+                let prenom = document.getElementById("prenom").value.trim();
+                let telephone = document.getElementById("telephone").value.trim();
+                let email = document.getElementById("email").value.trim();
+
+                let nomError = document.getElementById("nom-error");
+                let prenomError = document.getElementById("prenom-error");
+                let telephoneError = document.getElementById("telephone-error");
+                let emailError = document.getElementById("email-error");
+
+                nomError.textContent = "";
+                prenomError.textContent = "";
+                telephoneError.textContent = "";
+                emailError.textContent = "";
+
+                const nameRegex = /^[A-Za-zÀ-ÿ\s-]+$/;
+                const phoneRegex = /^(099|085|081|098|089)\d{7}$/;
+
+                if (!nameRegex.test(nom)) {
+                    nomError.textContent = "Le nom ne doit contenir que des lettres et espaces.";
+                    return;
+                }
+
+                if (!nameRegex.test(prenom)) {
+                    prenomError.textContent = "Le prénom ne doit contenir que des lettres et espaces.";
+                    return;
+                }
+
+                if (!phoneRegex.test(telephone)) {
+                    telephoneError.textContent = "Le numéro doit commencer par 099, 085, 081, 098 ou 089 et contenir 10 chiffres.";
+                    return;
+                }
+
+                let emailExists = contacts.some(contact => contact[4] === email);
+                let nomExists = contacts.some(contact => contact[1] === nom);
+
+                if (emailExists) {
+                    emailError.textContent = "Cet email est déjà utilisé.";
+                    return;
+                }
+
+                if (nomExists) {
+                    nomError.textContent = "Ce nom est déjà utilisé.";
+                    return;
+                }
+
+                let contact = {
+                    nom: nom,
+                    prenom: prenom,
+                    telephone: telephone,
+                    email: email,
+                    adresse: document.getElementById("adresse").value
+                };
+
+                fetch("/contact", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(contact)
+                }).then(() => {
+                    form.reset();
+                    loadContacts();
+                });
+            });
+
+            window.deleteContact = function (id) {
+                fetch(`/contact/${id}`, { method: "DELETE" })
+                    .then(() => loadContacts());
+            };
+
+            window.editContact = function (id) {
+                let nom = prompt("Nouveau nom:");
+                let prenom = prompt("Nouveau prénom:");
+                let telephone = prompt("Nouveau téléphone:");
+                let email = prompt("Nouvel email:");
+                let adresse = prompt("Nouvelle adresse:");
+
+                if (nom && prenom) {
+                    fetch(`/contact/${id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ nom, prenom, telephone, email, adresse })
+                    }).then(() => loadContacts());
+                }
+            };
+
+            loadContacts();
+        });
+    </script>
+</body>
+</html>
