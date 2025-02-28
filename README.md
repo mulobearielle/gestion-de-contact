@@ -106,4 +106,4 @@
 
 ## **7. Conclusion**
 Ce projet illustre une application CRUD complète avec une stack simple mais efficace. Il peut être étendu pour répondre à des besoins professionnels (gestion de clients, carnet d'adresses, etc.).  
-**Code source disponible sur** : [Lien vers le dépôt GitHub].
+**Code source disponible sur** : [https://github.com/mulobearielle/gestion-de-contact ].
